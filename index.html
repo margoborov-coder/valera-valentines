@@ -215,11 +215,10 @@
     }
   </style>
 </head>
-<body>
-
-  <!-- ВАЖНО: song.mp3 должен лежать рядом с index.html в корне репозитория -->
-  <audio id="song" src="song.mp3" preload="auto" playsinline></audio>
-
+<body>  <audio id="song" preload="auto" playsinline>
+  <source src="song.mp3?v=3" type="audio/mpeg">
+</audio>
+  
   <div class="card" id="card">
     <div class="hearts" id="hearts"></div>
 
