@@ -44,10 +44,12 @@
       left: var(--x);
       font-size: var(--s);
       opacity:0;
-      filter: drop-shadow(0 10px 12px rgba(0,0,0,.18));
+      /* на мобиле фильтры могут лагать — лучше мягче */
+      filter: none;
       animation: floatUp var(--d) linear infinite;
       animation-delay: var(--delay);
       transform: translateZ(0);
+      will-change: transform, opacity;
     }
     @keyframes floatUp{
       0%{ transform: translate3d(var(--dx1),0,0) rotate(var(--r)); opacity:0; }
@@ -118,26 +120,15 @@
       position:absolute;
       inset:0;
       pointer-events:none;
-      z-index:9999; /* сверх финального слоя */
+      z-index:9999;
     }
-
-    /* explosion hearts */
-    .boom{
-  position:absolute;
-  left:50%;
-  top:50%;
-  transform:translate(-50%,-50%);
-  font-size:var(--bs);
-  opacity:1;
-  animation: burst .75s ease-out forwards;
-  pointer-events:none;
-  will-change: transform, opacity;
-  /* ВАЖНО: на мобиле drop-shadow часто фризит */
-  filter: none;
-}
-    @keyframes burst{
-      0%{ transform:translate(-50%,-50%) translate(0,0) scale(.9); opacity:1; }
-      100%{ transform:translate(-50%,-50%) translate(var(--bdx),var(--bdy)) scale(1.25); opacity:0; }
+    /* canvas для взрыва */
+    #burstCanvas{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      pointer-events:none;
     }
 
     /* FINAL overlay */
@@ -213,7 +204,10 @@
 <body>
   <div class="card" id="card">
     <div class="hearts" id="hearts"></div>
-    <div id="fx"></div>
+
+    <div id="fx">
+      <canvas id="burstCanvas"></canvas>
+    </div>
 
     <h1>Ты будешь моей валентинкой?</h1>
     <p class="sub">Выбор очевиден 😌💞</p>
@@ -243,67 +237,132 @@
     const hearts = document.getElementById("hearts");
     const area   = document.getElementById("area");
     const card   = document.getElementById("card");
-    const fx     = document.getElementById("fx");
     const yes    = document.getElementById("yes");
     const no     = document.getElementById("no");
     const final  = document.getElementById("final");
 
-    // Floating hearts
+    const canvas = document.getElementById("burstCanvas");
+    const ctx = canvas.getContext("2d");
+
+    // --- helpers
+    function isMobile(){
+      return matchMedia("(hover: none)").matches;
+    }
+    const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    // Вибрация (Android; iPhone почти всегда игнорит)
+    function multiVibrate(){
+      if (navigator.vibrate) navigator.vibrate([60,40,80,40,120]);
+    }
+
+    // --- Floating hearts (фон)
+    let floatInterval = null;
     function makeHeart(layer){
       const h = document.createElement("div");
       h.className = "heart";
       h.textContent = "💞";
       h.style.setProperty("--x", (Math.random()*100).toFixed(2) + "%");
-      h.style.setProperty("--s", (12 + Math.random()*58).toFixed(0) + "px");
-      h.style.setProperty("--d", (4 + Math.random()*7).toFixed(2) + "s");
+      h.style.setProperty("--s", (12 + Math.random()*50).toFixed(0) + "px");
+      h.style.setProperty("--d", (5 + Math.random()*7).toFixed(2) + "s");
       h.style.setProperty("--delay", (-Math.random()*4).toFixed(2) + "s");
       h.style.setProperty("--dx1", (Math.random()*40 - 20).toFixed(1) + "%");
       h.style.setProperty("--dx2", (Math.random()*60 - 30).toFixed(1) + "%");
       h.style.setProperty("--r", (Math.random()*60 - 30).toFixed(0) + "deg");
       layer.appendChild(h);
-      setTimeout(()=>h.remove(), 12000);
+      setTimeout(()=>h.remove(), 13000);
     }
-    for(let i=0;i<26;i++) setTimeout(()=>makeHeart(hearts), i*120);
-    setInterval(()=>makeHeart(hearts), 220);
 
-   function isMobile(){
-  return matchMedia("(hover: none)").matches; // iPhone/Android
-}
-const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    for(let i=0;i<18;i++) setTimeout(()=>makeHeart(hearts), i*140);
+    floatInterval = setInterval(()=>makeHeart(hearts), 260);
 
-function explode(countDesktop=90){
-  // меньше элементов на мобиле
-  const count = reduceMotion ? 12 : (isMobile() ? 28 : countDesktop);
+    function stopFloatingHearts(){
+      if(floatInterval){
+        clearInterval(floatInterval);
+        floatInterval = null;
+      }
+      // лёгкая чистка, чтобы не грузить финал
+      setTimeout(()=>{ hearts.innerHTML = ""; }, 900);
+    }
 
-  // чистим слой эффектов на всякий случай
-  fx.innerHTML = "";
+    // --- CANVAS explosion (быстро и без лагов на iPhone)
+    let particles = [];
+    let animId = 0;
 
-  const r = card.getBoundingClientRect();
-  const cx = r.width / 2;
-  const cy = r.height / 2;
+    function resizeCanvasToCard(){
+      const r = card.getBoundingClientRect();
+      const dpr = Math.min(2, window.devicePixelRatio || 1); // не больше 2, чтобы не убить iPhone
+      canvas.width  = Math.floor(r.width * dpr);
+      canvas.height = Math.floor(r.height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
 
-  for(let i=0;i<count;i++){
-    const b = document.createElement("div");
-    b.className = "boom";
-    b.textContent = "💞";
+    function explodeCanvas(){
+      if(reduceMotion) return;
 
-    const ang = Math.random()*Math.PI*2;
-    const dist = (isMobile() ? 90 : 140) + Math.random()*(isMobile() ? 140 : 260);
+      resizeCanvasToCard();
+      const r = card.getBoundingClientRect();
+      const cx = r.width / 2;
+      const cy = r.height / 2;
 
-    b.style.left = cx + "px";
-    b.style.top  = cy + "px";
-    b.style.setProperty("--bdx", (Math.cos(ang)*dist).toFixed(1) + "px");
-    b.style.setProperty("--bdy", (Math.sin(ang)*dist).toFixed(1) + "px");
-    b.style.setProperty("--bs", (isMobile() ? 18 : 22) + Math.floor(Math.random()*(isMobile()?26:44)) + "px");
+      const count = isMobile() ? 26 : 70;   // ключ: меньше частиц на мобиле
+      const maxDist = isMobile() ? 220 : 340;
 
-    fx.appendChild(b);
-  }
+      particles = [];
+      for(let i=0;i<count;i++){
+        const a = Math.random()*Math.PI*2;
+        const sp = (isMobile()? 2.4 : 3.2) + Math.random()*1.8;
+        particles.push({
+          x: cx, y: cy,
+          vx: Math.cos(a)*sp,
+          vy: Math.sin(a)*sp - (isMobile()? 1.2 : 1.6),
+          g: 0.06 + Math.random()*0.04,
+          life: 1.0,
+          size: (isMobile()? 18 : 22) + Math.random()*(isMobile()? 18 : 38),
+          rot: (Math.random()*0.6 - 0.3),
+          drift: (Math.random()*0.4 - 0.2),
+          max: maxDist
+        });
+      }
 
-  // удаляем всё пачкой после анимации
-  setTimeout(()=>{ fx.innerHTML = ""; }, 900);
-}
+      cancelAnimationFrame(animId);
+      const start = performance.now();
 
-    // NO button logic
+      function tick(t){
+        const dt = Math.min(32, t - start);
+        ctx.clearRect(0,0, r.width, r.height);
+
+        // рисуем
+        for(let i=particles.length-1; i>=0; i--){
+          const p = particles[i];
+          p.vy += p.g;
+          p.x += p.vx + p.drift;
+          p.y += p.vy;
+          p.life -= 0.018;
+
+          const dx = p.x - cx, dy = p.y - cy;
+          if(p.life <= 0 || (dx*dx + dy*dy) > (p.max*p.max)){
+            particles.splice(i,1);
+            continue;
+          }
+
+          ctx.globalAlpha = Math.max(0, p.life);
+          ctx.font = `${p.size}px -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif`;
+          ctx.fillText("💞", p.x, p.y);
+        }
+
+        ctx.globalAlpha = 1;
+
+        if(particles.length){
+          animId = requestAnimationFrame(tick);
+        } else {
+          ctx.clearRect(0,0, r.width, r.height);
+        }
+      }
+
+      animId = requestAnimationFrame(tick);
+    }
+
+    // --- NO button logic
     const phrases = ["ты по-моему перепутал", "ах ты жуук", "да ты снайпер!"];
     let p = 0;
 
@@ -335,26 +394,33 @@ function explode(countDesktop=90){
     no.addEventListener("click", moveNo);
     no.addEventListener("touchstart", moveNo, {passive:false});
 
-    // ВАЖНО: на мобиле чаще стабильнее touchend
+    // YES
     let fired = false;
     function onYes(e){
-      if (e) e.preventDefault();
-      if (fired) return;
+      if(e) e.preventDefault();
+      if(fired) return;
       fired = true;
 
-      // даём iOS кадр на перерисовку
+      // уменьшаем нагрузку сразу
+      stopFloatingHearts();
+
       requestAnimationFrame(()=>{
-        explode(110);
         multiVibrate();
+        explodeCanvas();
 
         setTimeout(()=>{
           final.classList.add("show");
-        }, 950);
+        }, isMobile() ? 700 : 850);
       });
     }
 
     yes.addEventListener("touchend", onYes, {passive:false});
     yes.addEventListener("click", onYes);
+
+    // на ресайз/поворот — подгоняем canvas
+    window.addEventListener("resize", ()=> {
+      if(particles.length) resizeCanvasToCard();
+    });
   </script>
 </body>
 </html>
