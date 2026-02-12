@@ -207,7 +207,8 @@
     }
   </style>
 </head>
-<body>
+<body><audio id="song" preload="auto" src="song.mp3"></audio>
+
   <div class="card" id="card">
     <div class="hearts" id="hearts"></div>
 
@@ -323,6 +324,9 @@
     no.addEventListener("touchstart", moveNo, {passive:false});
 
     yes.addEventListener("click", ()=>{
+      const song = document.getElementById("song");
+try { song.currentTime = 0; song.play(); } catch(e) {}
+      
       multiVibrate();
       explode(90);
 
