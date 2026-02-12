@@ -141,16 +141,17 @@
       background: linear-gradient(180deg, rgba(0,0,0,.22), rgba(0,0,0,.62));
     }
 
-    .photoWrap{
-      position:relative;
-      width:min(380px, 92vw);
-      border-radius:22px;
-      overflow:hidden;
-      box-shadow: 0 24px 70px rgba(0,0,0,.35);
-      transform: translateY(26px) scale(.96);
-      opacity:0;
-      animation: popIn .8s cubic-bezier(.2,1,.2,1) forwards;
-      background:#000;
+   .photoWrap{
+  position:relative;
+  width:min(360px, 90vw);
+  margin-top: 60px; /* опускаем блок ниже */
+  border-radius:22px;
+  overflow:hidden;
+  box-shadow: 0 24px 70px rgba(0,0,0,.35);
+  transform: translateY(26px) scale(.96);
+  opacity:0;
+  animation: popIn .8s cubic-bezier(.2,1,.2,1) forwards;
+  background:#000;
     }
     @keyframes popIn{
       to { transform: translateY(0) scale(1); opacity:1; }
@@ -230,7 +231,6 @@
         <div class="caption">
           <p class="cap1">Валера, ешь яйца 💞</p>
           <p class="cap2">Люблю тебя котик мой</p>
-          <div class="from">От: Маргооооо</div>
         </div>
       </div>
     </div>
