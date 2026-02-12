@@ -141,17 +141,16 @@
       background: linear-gradient(180deg, rgba(0,0,0,.22), rgba(0,0,0,.62));
     }
 
-   .photoWrap{
-  position:relative;
-  width:min(360px, 90vw);
-  margin-top: 60px;
-  border-radius:22px;
-  overflow:hidden;
-  box-shadow: 0 24px 70px rgba(0,0,0,.35);
-  transform: translateY(26px) scale(.96);
-  opacity:0;
-  animation: popIn .8s cubic-bezier(.2,1,.2,1) forwards;
-  background:#000;
+    .photoWrap{
+      position:relative;
+      width:min(380px, 92vw);
+      border-radius:22px;
+      overflow:hidden;
+      box-shadow: 0 24px 70px rgba(0,0,0,.35);
+      transform: translateY(26px) scale(.96);
+      opacity:0;
+      animation: popIn .8s cubic-bezier(.2,1,.2,1) forwards;
+      background:#000;
     }
     @keyframes popIn{
       to { transform: translateY(0) scale(1); opacity:1; }
@@ -208,8 +207,6 @@
   </style>
 </head>
 <body>
-  <audio id="song" src="song.mp3" preload="auto" playsinline></audio>
-
   <div class="card" id="card">
     <div class="hearts" id="hearts"></div>
 
@@ -233,6 +230,7 @@
         <div class="caption">
           <p class="cap1">Валера, ешь яйца 💞</p>
           <p class="cap2">Люблю тебя котик мой</p>
+          <div class="from">От: Маргооооо</div>
         </div>
       </div>
     </div>
@@ -269,28 +267,21 @@
     }
 
     // Heart explosion
-   function explode(count=90){
-  const container = document.getElementById("card"); // взрыв поверх всего
-  const r = container.getBoundingClientRect();
+    function explode(count=80){
+      for(let i=0;i<count;i++){
+        const b = document.createElement("div");
+        b.className = "boom";
+        b.textContent = "💞";
+        const ang = Math.random()*Math.PI*2;
+        const dist = 60 + Math.random()*200;
+        b.style.setProperty("--bdx", (Math.cos(ang)*dist).toFixed(1) + "px");
+        b.style.setProperty("--bdy", (Math.sin(ang)*dist).toFixed(1) + "px");
+        b.style.setProperty("--bs", (16 + Math.random()*56).toFixed(0) + "px");
+        area.appendChild(b);
+        setTimeout(()=>b.remove(), 1100);
+      }
+    }
 
-  for(let i=0;i<count;i++){
-    const b = document.createElement("div");
-    b.className = "boom";
-    b.textContent = "💞";
-
-    const ang = Math.random()*Math.PI*2;
-    const dist = 80 + Math.random()*260;
-
-    b.style.left = (r.width/2) + "px";
-    b.style.top  = (r.height/2) + "px";
-    b.style.setProperty("--bdx", (Math.cos(ang)*dist).toFixed(1) + "px");
-    b.style.setProperty("--bdy", (Math.sin(ang)*dist).toFixed(1) + "px");
-    b.style.setProperty("--bs", (18 + Math.random()*62).toFixed(0) + "px");
-
-    container.appendChild(b);
-    setTimeout(()=>b.remove(), 1150);
-  }
-}
     // NO button logic (mobile-safe, stays inside area)
     const phrases = ["ты по-моему перепутал", "ах ты жуук", "да ты снайпер!"];
     let p = 0;
@@ -324,30 +315,14 @@
     no.addEventListener("click", moveNo);
     no.addEventListener("touchstart", moveNo, {passive:false});
 
- yes.addEventListener("click", async ()=>{
-  const song = document.getElementById("song");
+    yes.addEventListener("click", ()=>{
+      multiVibrate();
+      explode(90);
 
-  // Сброс и попытка запуска
-  try {
-    song.pause();
-    song.currentTime = 0;
-    song.volume = 1.0;
-
-    const p = song.play();
-    if (p && typeof p.then === "function") await p;
-  } catch (e) {
-    // Если iPhone/браузер блокирует — покажем подсказку
-    alert("Музыка не стартанула 😿\nПроверь, открывается ли song.mp3 по ссылке сайта.\nИ попробуй выключить беззвучный режим на iPhone.");
-  }
-
-  multiVibrate();
-  explode(90);
-
-  setTimeout(()=>{
-    final.classList.add("show");
-  }, 1100);
-});
-
+      setTimeout(()=>{
+        final.classList.add("show");
+      }, 650);
+    });
   </script>
 </body>
 </html>
