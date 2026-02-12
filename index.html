@@ -144,7 +144,7 @@
    .photoWrap{
   position:relative;
   width:min(360px, 90vw);
-  margin-top: 60px; /* опускаем блок ниже */
+  margin-top: 60px;
   border-radius:22px;
   overflow:hidden;
   box-shadow: 0 24px 70px rgba(0,0,0,.35);
@@ -207,7 +207,8 @@
     }
   </style>
 </head>
-<body><audio id="song" preload="auto" src="song.mp3"></audio>
+<body>
+  <audio id="song" src="song.mp3" preload="auto" playsinline></audio>
 
   <div class="card" id="card">
     <div class="hearts" id="hearts"></div>
@@ -323,17 +324,30 @@
     no.addEventListener("click", moveNo);
     no.addEventListener("touchstart", moveNo, {passive:false});
 
-    yes.addEventListener("click", ()=>{
-      const song = document.getElementById("song");
-try { song.currentTime = 0; song.play(); } catch(e) {}
-      
-      multiVibrate();
-      explode(90);
+ yes.addEventListener("click", async ()=>{
+  const song = document.getElementById("song");
 
-     setTimeout(()=>{
-  final.classList.add("show");
-}, 1100);
-    });
+  // Сброс и попытка запуска
+  try {
+    song.pause();
+    song.currentTime = 0;
+    song.volume = 1.0;
+
+    const p = song.play();
+    if (p && typeof p.then === "function") await p;
+  } catch (e) {
+    // Если iPhone/браузер блокирует — покажем подсказку
+    alert("Музыка не стартанула 😿\nПроверь, открывается ли song.mp3 по ссылке сайта.\nИ попробуй выключить беззвучный режим на iPhone.");
+  }
+
+  multiVibrate();
+  explode(90);
+
+  setTimeout(()=>{
+    final.classList.add("show");
+  }, 1100);
+});
+
   </script>
 </body>
 </html>
