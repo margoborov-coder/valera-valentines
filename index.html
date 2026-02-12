@@ -118,6 +118,7 @@
       animation: burst .95s ease-out forwards;
       filter: drop-shadow(0 10px 12px rgba(0,0,0,.25));
       pointer-events:none;
+      z-index: 9; /* важно: чтобы взрыв был виден поверх */
     }
     @keyframes burst{
       0%{ transform:translate(-50%,-50%) translate(0,0) scale(.9); opacity:1; }
@@ -141,17 +142,17 @@
       background: linear-gradient(180deg, rgba(0,0,0,.22), rgba(0,0,0,.62));
     }
 
-   .photoWrap{
-  position:relative;
-  width:min(360px, 90vw);
-  margin-top: 60px;
-  border-radius:22px;
-  overflow:hidden;
-  box-shadow: 0 24px 70px rgba(0,0,0,.35);
-  transform: translateY(26px) scale(.96);
-  opacity:0;
-  animation: popIn .8s cubic-bezier(.2,1,.2,1) forwards;
-  background:#000;
+    .photoWrap{
+      position:relative;
+      width:min(360px, 90vw);
+      margin-top: 60px;
+      border-radius:22px;
+      overflow:hidden;
+      box-shadow: 0 24px 70px rgba(0,0,0,.35);
+      transform: translateY(26px) scale(.96);
+      opacity:0;
+      animation: popIn .8s cubic-bezier(.2,1,.2,1) forwards;
+      background:#000;
     }
     @keyframes popIn{
       to { transform: translateY(0) scale(1); opacity:1; }
@@ -172,8 +173,8 @@
     .caption{
       position:absolute;
       left:0; right:0; bottom:0;
-      padding:14px 14px 12px;
-      background: linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,.72));
+      padding:18px 16px 16px;
+      background: linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,.75));
       color:#fff;
       text-shadow: 0 10px 30px rgba(0,0,0,.45);
     }
@@ -188,14 +189,21 @@
       font-size: 16px;
       opacity:.95;
     }
-    .from{
-      position:absolute;
-      left:14px; right:14px;
-      bottom:10px;
-      text-align:center;
-      font-size: 13px;
-      opacity:.9;
-      letter-spacing:.02em;
+
+    .musicBtn{
+      margin-top: 10px;
+      width: 100%;
+      display:flex;
+      justify-content:center;
+    }
+    .musicBtn button{
+      background: rgba(255,255,255,.16);
+      color:#fff;
+      border: 1px solid rgba(255,255,255,.25);
+      padding: 10px 14px;
+      border-radius: 14px;
+      font-size: 14px;
+      backdrop-filter: blur(8px);
     }
 
     .hint{
@@ -208,6 +216,8 @@
   </style>
 </head>
 <body>
+
+  <!-- ВАЖНО: song.mp3 должен лежать рядом с index.html в корне репозитория -->
   <audio id="song" src="song.mp3" preload="auto" playsinline></audio>
 
   <div class="card" id="card">
@@ -228,11 +238,19 @@
     <!-- Final -->
     <div class="final" id="final">
       <div class="finalBg"></div>
-      <div class="photoWrap">
-        <img class="photo" src="photo.jpg" alt="мы" />
-        <div class="caption">
-          <p class="cap1">Валера, ешь яйца 💞</p>
-          <p class="cap2">Люблю тебя котик мой</p>
+
+      <div>
+        <div class="photoWrap">
+          <img class="photo" src="photo.jpg" alt="мы" />
+          <div class="caption">
+            <p class="cap1">Валера, ешь яйца 💞</p>
+            <p class="cap2">Люблю тебя котик мой</p>
+          </div>
+        </div>
+
+        <!-- кнопка-страховка для iPhone -->
+        <div class="musicBtn">
+          <button id="musicToggle" type="button">🔊 Включить музыку</button>
         </div>
       </div>
     </div>
@@ -244,6 +262,8 @@
     const yes    = document.getElementById("yes");
     const no     = document.getElementById("no");
     const final  = document.getElementById("final");
+    const song   = document.getElementById("song");
+    const musicToggle = document.getElementById("musicToggle");
 
     // Floating hearts
     function makeHeart(layer){
@@ -263,35 +283,36 @@
     for(let i=0;i<26;i++) setTimeout(()=>makeHeart(hearts), i*120);
     setInterval(()=>makeHeart(hearts), 220);
 
-    // Vibration (works on Android, usually not on iPhone browsers)
+    // Vibration (Android ok, iPhone обычно нет)
     function multiVibrate(){
       if (navigator.vibrate) navigator.vibrate([90,70,90,70,140,80,140]);
     }
 
-    // Heart explosion
-   function explode(count=90){
-  const container = document.getElementById("card"); // взрыв поверх всего
-  const r = container.getBoundingClientRect();
+    // Heart explosion (over whole card)
+    function explode(count=90){
+      const container = document.getElementById("card");
+      const r = container.getBoundingClientRect();
 
-  for(let i=0;i<count;i++){
-    const b = document.createElement("div");
-    b.className = "boom";
-    b.textContent = "💞";
+      for(let i=0;i<count;i++){
+        const b = document.createElement("div");
+        b.className = "boom";
+        b.textContent = "💞";
 
-    const ang = Math.random()*Math.PI*2;
-    const dist = 80 + Math.random()*260;
+        const ang = Math.random()*Math.PI*2;
+        const dist = 80 + Math.random()*260;
 
-    b.style.left = (r.width/2) + "px";
-    b.style.top  = (r.height/2) + "px";
-    b.style.setProperty("--bdx", (Math.cos(ang)*dist).toFixed(1) + "px");
-    b.style.setProperty("--bdy", (Math.sin(ang)*dist).toFixed(1) + "px");
-    b.style.setProperty("--bs", (18 + Math.random()*62).toFixed(0) + "px");
+        b.style.left = (r.width/2) + "px";
+        b.style.top  = (r.height/2) + "px";
+        b.style.setProperty("--bdx", (Math.cos(ang)*dist).toFixed(1) + "px");
+        b.style.setProperty("--bdy", (Math.sin(ang)*dist).toFixed(1) + "px");
+        b.style.setProperty("--bs", (18 + Math.random()*62).toFixed(0) + "px");
 
-    container.appendChild(b);
-    setTimeout(()=>b.remove(), 1150);
-  }
-}
-    // NO button logic (mobile-safe, stays inside area)
+        container.appendChild(b);
+        setTimeout(()=>b.remove(), 1150);
+      }
+    }
+
+    // NO button logic
     const phrases = ["ты по-моему перепутал", "ах ты жуук", "да ты снайпер!"];
     let p = 0;
 
@@ -316,7 +337,6 @@
       no.textContent = phrases[p % phrases.length];
       p++;
 
-      // YES grows
       yes.style.transform = "scale(" + (1 + Math.min(p*0.14, 1.6)) + ")";
     }
 
@@ -324,30 +344,47 @@
     no.addEventListener("click", moveNo);
     no.addEventListener("touchstart", moveNo, {passive:false});
 
- yes.addEventListener("click", async ()=>{
-  const song = document.getElementById("song");
+    // универсальная функция запуска (и по кнопке, и по "Да")
+    async function tryPlay(){
+      try{
+        song.volume = 1.0;
+        // Важно: иногда currentTime=0 кидает ошибку если файл не загружен — ловим
+        try { song.currentTime = 0; } catch(_) {}
+        const pr = song.play();
+        if (pr && typeof pr.then === "function") await pr;
+        return true;
+      }catch(e){
+        return false;
+      }
+    }
 
-  // Сброс и попытка запуска
-  try {
-    song.pause();
-    song.currentTime = 0;
-    song.volume = 1.0;
+    // Кнопка на финале (страховка для iPhone)
+    musicToggle.addEventListener("click", async ()=>{
+      if (!song.src) return;
 
-    const p = song.play();
-    if (p && typeof p.then === "function") await p;
-  } catch (e) {
-    // Если iPhone/браузер блокирует — покажем подсказку
-    alert("Музыка не стартанула 😿\nПроверь, открывается ли song.mp3 по ссылке сайта.\nИ попробуй выключить беззвучный режим на iPhone.");
-  }
+      if (!song.paused){
+        song.pause();
+        musicToggle.textContent = "🔊 Включить музыку";
+      } else {
+        const ok = await tryPlay();
+        musicToggle.textContent = ok ? "⏸ Пауза" : "🔊 Включить музыку";
+        if (!ok) alert("Музыка не стартанула 😿\nПроверь, что song.mp3 открывается по ссылке сайта и что не включён беззвучный режим на iPhone.");
+      }
+    });
 
-  multiVibrate();
-  explode(90);
+    // YES click: play + effects
+    yes.addEventListener("click", async ()=>{
+      // попытка запуска музыки сразу после клика (это важно для iPhone)
+      const ok = await tryPlay();
+      musicToggle.textContent = ok ? "⏸ Пауза" : "🔊 Включить музыку";
 
-  setTimeout(()=>{
-    final.classList.add("show");
-  }, 1100);
-});
+      multiVibrate();
+      explode(90);
 
+      setTimeout(()=>{
+        final.classList.add("show");
+      }, 1100);
+    });
   </script>
 </body>
 </html>
