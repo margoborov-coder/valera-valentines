@@ -123,16 +123,18 @@
 
     /* explosion hearts */
     .boom{
-      position:absolute;
-      left:50%;
-      top:50%;
-      transform:translate(-50%,-50%);
-      font-size:var(--bs);
-      opacity:1;
-      animation: burst .95s ease-out forwards;
-      filter: drop-shadow(0 10px 12px rgba(0,0,0,.25));
-      will-change: transform, opacity;
-    }
+  position:absolute;
+  left:50%;
+  top:50%;
+  transform:translate(-50%,-50%);
+  font-size:var(--bs);
+  opacity:1;
+  animation: burst .75s ease-out forwards;
+  pointer-events:none;
+  will-change: transform, opacity;
+  /* ВАЖНО: на мобиле drop-shadow часто фризит */
+  filter: none;
+}
     @keyframes burst{
       0%{ transform:translate(-50%,-50%) translate(0,0) scale(.9); opacity:1; }
       100%{ transform:translate(-50%,-50%) translate(var(--bdx),var(--bdy)) scale(1.25); opacity:0; }
@@ -264,32 +266,42 @@
     for(let i=0;i<26;i++) setTimeout(()=>makeHeart(hearts), i*120);
     setInterval(()=>makeHeart(hearts), 220);
 
-    function multiVibrate(){
-      if (navigator.vibrate) navigator.vibrate([90,70,90,70,140,80,140]);
-    }
+   function isMobile(){
+  return matchMedia("(hover: none)").matches; // iPhone/Android
+}
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-    // Взрыв в отдельном слое fx (не режется на телефоне)
-    function explode(count=90){
-      const r = card.getBoundingClientRect();
+function explode(countDesktop=90){
+  // меньше элементов на мобиле
+  const count = reduceMotion ? 12 : (isMobile() ? 28 : countDesktop);
 
-      for(let i=0;i<count;i++){
-        const b = document.createElement("div");
-        b.className = "boom";
-        b.textContent = "💞";
+  // чистим слой эффектов на всякий случай
+  fx.innerHTML = "";
 
-        const ang = Math.random()*Math.PI*2;
-        const dist = 120 + Math.random()*280;
+  const r = card.getBoundingClientRect();
+  const cx = r.width / 2;
+  const cy = r.height / 2;
 
-        b.style.left = (r.width/2) + "px";
-        b.style.top  = (r.height/2) + "px";
-        b.style.setProperty("--bdx", (Math.cos(ang)*dist).toFixed(1) + "px");
-        b.style.setProperty("--bdy", (Math.sin(ang)*dist).toFixed(1) + "px");
-        b.style.setProperty("--bs", (18 + Math.random()*62).toFixed(0) + "px");
+  for(let i=0;i<count;i++){
+    const b = document.createElement("div");
+    b.className = "boom";
+    b.textContent = "💞";
 
-        fx.appendChild(b);
-        setTimeout(()=>b.remove(), 1100);
-      }
-    }
+    const ang = Math.random()*Math.PI*2;
+    const dist = (isMobile() ? 90 : 140) + Math.random()*(isMobile() ? 140 : 260);
+
+    b.style.left = cx + "px";
+    b.style.top  = cy + "px";
+    b.style.setProperty("--bdx", (Math.cos(ang)*dist).toFixed(1) + "px");
+    b.style.setProperty("--bdy", (Math.sin(ang)*dist).toFixed(1) + "px");
+    b.style.setProperty("--bs", (isMobile() ? 18 : 22) + Math.floor(Math.random()*(isMobile()?26:44)) + "px");
+
+    fx.appendChild(b);
+  }
+
+  // удаляем всё пачкой после анимации
+  setTimeout(()=>{ fx.innerHTML = ""; }, 900);
+}
 
     // NO button logic
     const phrases = ["ты по-моему перепутал", "ах ты жуук", "да ты снайпер!"];
