@@ -77,7 +77,7 @@
       border-radius:18px;
       background: rgba(255,255,255,.35);
       border: 1px solid rgba(255,46,109,.12);
-      overflow:hidden;
+      overflow:hidden; /* оставляем, но взрыв делаем не тут */
       display:flex;
       align-items:center;
       justify-content:center;
@@ -104,6 +104,7 @@
       -webkit-tap-highlight-color: transparent;
       cursor:pointer;
       transition: transform .15s ease;
+      touch-action: manipulation;
     }
     #yes{ background:var(--accent); color:#fff; }
     #no { background:#e6e6e6; color:#222; }
@@ -111,13 +112,15 @@
     /* explosion hearts */
     .boom{
       position:absolute;
-      left:50%; top:50%;
+      left:50%;
+      top:50%;
       transform:translate(-50%,-50%);
       font-size:var(--bs);
       opacity:1;
       animation: burst .95s ease-out forwards;
       filter: drop-shadow(0 10px 12px rgba(0,0,0,.25));
       pointer-events:none;
+      z-index:50; /* ВАЖНО: поверх всего */
     }
     @keyframes burst{
       0%{ transform:translate(-50%,-50%) translate(0,0) scale(.9); opacity:1; }
@@ -133,27 +136,28 @@
       align-items:center;
       justify-content:center;
       padding:16px;
+      pointer-events:none;
     }
-    .final.show{ display:flex; }
+    .final.show{ display:flex; pointer-events:auto; }
 
     .finalBg{
       position:absolute; inset:0;
       background: linear-gradient(180deg, rgba(0,0,0,.22), rgba(0,0,0,.62));
     }
 
-   .photoWrap{
-  position:relative;
-  width:min(360px, 90vw);
-  margin-top: 60px; /* опускаем блок ниже */
-  border-radius:22px;
-  overflow:hidden;
-  box-shadow: 0 24px 70px rgba(0,0,0,.35);
-  transform: translateY(26px) scale(.96);
-  opacity:0;
-  animation: popIn .8s cubic-bezier(.2,1,.2,1) forwards;
-  background:#000;
-}
-
+    .photoWrap{
+      position:relative;
+      width:min(360px, 90vw);
+      margin-top: 60px;
+      border-radius:22px;
+      overflow:hidden;
+      box-shadow: 0 24px 70px rgba(0,0,0,.35);
+      transform: translateY(26px) scale(.96);
+      opacity:0;
+      animation: popIn .8s cubic-bezier(.2,1,.2,1) forwards;
+      background:#000;
+      z-index:11;
+    }
     @keyframes popIn{
       to { transform: translateY(0) scale(1); opacity:1; }
     }
@@ -188,15 +192,6 @@
       margin:8px 0 0;
       font-size: 16px;
       opacity:.95;
-    }
-    .from{
-      position:absolute;
-      left:14px; right:14px;
-      bottom:10px;
-      text-align:center;
-      font-size: 13px;
-      opacity:.9;
-      letter-spacing:.02em;
     }
 
     .hint{
@@ -240,6 +235,7 @@
   <script>
     const hearts = document.getElementById("hearts");
     const area   = document.getElementById("area");
+    const card   = document.getElementById("card");
     const yes    = document.getElementById("yes");
     const no     = document.getElementById("no");
     const final  = document.getElementById("final");
@@ -267,18 +263,25 @@
       if (navigator.vibrate) navigator.vibrate([90,70,90,70,140,80,140]);
     }
 
-    // Heart explosion
-    function explode(count=80){
+    // Heart explosion (на card, чтобы не обрезалось на телефоне)
+    function explode(count=90){
+      const r = card.getBoundingClientRect();
+
       for(let i=0;i<count;i++){
         const b = document.createElement("div");
         b.className = "boom";
         b.textContent = "💞";
+
         const ang = Math.random()*Math.PI*2;
-        const dist = 60 + Math.random()*200;
+        const dist = 90 + Math.random()*260;
+
+        b.style.left = (r.width/2) + "px";
+        b.style.top  = (r.height/2) + "px";
         b.style.setProperty("--bdx", (Math.cos(ang)*dist).toFixed(1) + "px");
         b.style.setProperty("--bdy", (Math.sin(ang)*dist).toFixed(1) + "px");
-        b.style.setProperty("--bs", (16 + Math.random()*56).toFixed(0) + "px");
-        area.appendChild(b);
+        b.style.setProperty("--bs", (18 + Math.random()*62).toFixed(0) + "px");
+
+        card.appendChild(b);
         setTimeout(()=>b.remove(), 1100);
       }
     }
